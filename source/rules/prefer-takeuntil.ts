@@ -31,6 +31,7 @@ const defaultOptions: readonly {
   checkComplete?: boolean;
   checkDecorators?: string[];
   checkDestroy?: boolean;
+  excludedObservableTypes?: string[];
 }[] = [];
 
 const rule = ruleCreator({
@@ -51,14 +52,16 @@ const rule = ruleCreator({
           checkComplete: { type: "boolean" },
           checkDecorators: { type: "array", items: { type: "string" } },
           checkDestroy: { type: "boolean" },
+          excludedObservableTypes: { type: "array", items: { type: "string" } },
         },
         type: "object",
         description: stripIndent`
-        An optional object with optional \`alias\`, \`checkComplete\`, \`checkDecorators\` and \`checkDestroy\` properties.
+        An optional object with optional \`alias\`, \`checkComplete\`, \`checkDecorators\`, \`checkDestroy\` and \`excludedObservableTypes\` properties.
         The \`alias\` property is an array containing the names of operators that aliases for \`takeUntil\`.
         The \`checkComplete\` property is a boolean that determines whether or not \`complete\` must be called after \`next\`.
         The \`checkDecorators\` property is an array containing the names of the decorators that determine whether or not a class is checked.
         The \`checkDestroy\` property is a boolean that determines whether or not a \`Subject\`-based \`ngOnDestroy\` must be implemented.
+        The \`excludedObservableTypes\` property is an array containing the names of types that should be excluded from the check.
       `,
       },
     ],
@@ -66,7 +69,7 @@ const rule = ruleCreator({
   },
   name: "prefer-takeuntil",
   create: (context, unused: typeof defaultOptions) => {
-    const { couldBeObservable } = getTypeServices(context);
+    const { couldBeObservable, couldBeType } = getTypeServices(context);
 
     // If an alias is specified, check for the subject-based destroy only if
     // it's explicitly configured. It's extremely unlikely a subject-based
@@ -78,6 +81,7 @@ const rule = ruleCreator({
       checkComplete = false,
       checkDecorators = ["Component"],
       checkDestroy = alias.length === 0,
+      excludedObservableTypes = [],
     } = config;
 
     type Entry = {
@@ -101,6 +105,9 @@ const rule = ruleCreator({
         }
         const { object } = callee;
         if (!couldBeObservable(object)) {
+          return;
+        }
+        if (excludedObservableTypes.some((e) => couldBeType(object, e))) {
           return;
         }
         checkSubscribe(callExpression, entry);
@@ -265,6 +272,13 @@ const rule = ruleCreator({
         isIdentifier(object.callee.property) &&
         object.callee.property.name === "pipe"
       ) {
+        if (
+          excludedObservableTypes.some((e) =>
+            couldBeType((object.callee as any).object, e)
+          )
+        ) {
+          return;
+        }
         const operators = object.arguments;
         operators.forEach((operator) => {
           if (isCallExpression(operator)) {

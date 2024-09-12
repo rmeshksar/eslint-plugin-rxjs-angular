@@ -58,6 +58,8 @@ The `checkDecorators` property is an array containing the names of the decorator
 
 The `alias` property is an array of names of operators that should be treated similarly to `takeUntil`.
 
+The `excludedObservableTypes` property is an array containing the names of types that should be excluded from the check.
+
 ```json
 {
   "rxjs-angular/prefer-takeuntil": [
@@ -66,7 +68,8 @@ The `alias` property is an array of names of operators that should be treated si
       "alias": ["untilDestroyed"],
       "checkComplete": true,
       "checkDecorators": ["Component"],
-      "checkDestroy": true
+      "checkDestroy": true,
+      "excludedObservableTypes": ["AsyncSubject"]
     }
   ]
 }

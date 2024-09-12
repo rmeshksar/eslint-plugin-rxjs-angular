@@ -369,6 +369,56 @@ ruleTester({ types: true }).run("prefer-takeuntil", rule, {
         },
       ],
     },
+    {
+      code: stripIndent`
+        import { Component } from "@angular/core";
+        import { AsyncSubject } from "rxjs";
+        import { switchMap } from "rxjs/operators";
+
+        const o = new AsyncSubject<string>();
+
+        @Component({
+          selector: "component-with-excluded-type-1"
+        })
+        class CorrectComponent implements OnDestroy {
+          someMethod() {
+            o.subscribe();
+          }
+        }
+      `,
+      options: [
+        {
+          excludedObservableTypes: ["AsyncSubject"],
+          checkDestroy: false,
+        },
+      ],
+    },
+    {
+      code: stripIndent`
+        import { Component } from "@angular/core";
+        import { AsyncSubject } from "rxjs";
+        import { switchMap } from "rxjs/operators";
+
+        const o = new AsyncSubject<string>();
+
+        @Component({
+          selector: "component-with-excluded-type-2"
+        })
+        class CorrectComponent implements OnDestroy {
+          someMethod() {
+            o.pipe(
+              switchMap(_ => o),
+            ).subscribe();
+          }
+        }
+      `,
+      options: [
+        {
+          excludedObservableTypes: ["AsyncSubject"],
+          checkDestroy: false,
+        },
+      ],
+    },
   ],
   invalid: [
     fromFixture(
